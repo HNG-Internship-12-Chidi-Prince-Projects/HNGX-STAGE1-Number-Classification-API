@@ -1,17 +1,16 @@
-//code by Dev-X (HNG!2 stage 1 task)
+// Code by Dev-X (HNG!2 Stage 1 Task)
 
 const express = require("express");
 const axios = require("axios");
+const cors = require("cors");
 
 const app = express();
 const PORT = process.env.PORT || 5500;
 
-// this Enables and handles CORS
-const cors = require("cors");
+// Enable and handle CORS
 app.use(cors());
 
-
-// function to check if input (number) is prime 
+// Function to check if a number is prime
 const isNum_prime = (num) => {
   if (num < 2) return false;
   for (let i = 2; i * i <= num; i++) {
@@ -20,7 +19,7 @@ const isNum_prime = (num) => {
   return true;
 };
 
-// function to check if input (number) is perfect
+// Function to check if a number is perfect
 const isNum_perfect = (num) => {
   let sum = 1;
   for (let i = 2; i * i <= num; i++) {
@@ -32,7 +31,7 @@ const isNum_perfect = (num) => {
   return sum === num && num !== 1;
 };
 
-// function to check if number is an Armstrong number
+// Function to check if a number is an Armstrong number
 const isArmstrong = (num) => {
   const digits = num.toString().split("").map(Number);
   const power = digits.length;
@@ -40,47 +39,51 @@ const isArmstrong = (num) => {
   return sum === num;
 };
 
-// function to get a fun fact from Numbers API
+// Function to get a fun fact from Numbers API
 const getFunFact = async (num) => {
   try {
     const response = await axios.get(`http://numbersapi.com/${num}/math?json`);
-    return response.data.text;
+    return response.data.text || `No fun fact available for ${num}.`;
   } catch (error) {
-    return `opps..${num} fun fact is unable to be reached.`;
+    return `Oops.. ${num} fun fact is unavailable.`;
   }
 };
 
-// route to classify number
+// Route to classify number
 app.get("/api/classify-number", async (req, res) => {
   const { number } = req.query;
   const num = parseInt(number, 10);
-   
-  // this will check number and return error if not valid
+
+  // Validate input
   if (isNaN(num)) {
-    return res.status(400).json({ number : 'alphabet', error: true });
+    return res.status(400).json({ number: "alphabet", error: true });
   }
 
-  const properties = [];
-  if (isArmstrong(num)) properties.push("armstrong");
+  // Determine properties
+  let properties = [];
+  if (isArmstrong(num)) {
+    properties.push("armstrong");
+  }
   properties.push(num % 2 === 0 ? "even" : "odd");
 
-  const funFact = await getFunFact(num); //get fun fact from the Numbers API
+  // Fetch fun fact
+  const funFact = await getFunFact(num);
 
-
-  //send JSON response to client side
+  // Return JSON response
   res.json({
     number: num,
     is_prime: isNum_prime(num),
     is_perfect: isNum_perfect(num),
-    properties,
-    digit_sum: num.toString().split("").reduce((acc, digit) => acc + parseInt(digit, 10), 0),
+    properties, 
+    digit_sum: num
+      .toString()
+      .split("")
+      .reduce((acc, digit) => acc + parseInt(digit, 10), 0),
     fun_fact: funFact,
   });
 });
 
-
-
-
+// Start server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
