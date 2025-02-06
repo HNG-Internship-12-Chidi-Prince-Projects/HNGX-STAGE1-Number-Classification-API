@@ -57,7 +57,7 @@ app.get("/api/classify-number", async (req, res) => {
    
   // this will check number and return error if not valid
   if (isNaN(num)) {
-    return res.status(400).json({ number, error: true });
+    return res.status(400).json({ number : 'alphabet', error: true });
   }
 
   const properties = [];
