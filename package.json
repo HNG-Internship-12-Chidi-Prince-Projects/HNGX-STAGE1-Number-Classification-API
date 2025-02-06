@@ -3,6 +3,7 @@
     "axios": "^1.7.9",
     "cors": "^2.8.5",
     "express": "^4.21.2",
+    "node-cache": "^5.1.2",
     "nodecache": "^0.0.2"
   }
 }
