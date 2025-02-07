@@ -1,65 +1,107 @@
 const express = require("express");
-const axios = require("axios");
 const cors = require("cors");
+const axios = require("axios"); // ✅ Added axios import
 
 const app = express();
-const PORT = process.env.PORT || 5500;
-
 app.use(cors());
 
-// Optimized function to check properties
-const classifyNumber = (num) => {
-  if (num < 2) return { is_prime: false, is_perfect: false, is_armstrong: false };
+app.get("/api/classify-number", async (req, res) => { // ✅ Made function async
+    let { number } = req.query;
 
-  let sum = 1, is_prime = true;
-  for (let i = 2; i * i <= num; i++) {
-    if (num % i === 0) {
-      is_prime = false;
-      sum += i + (i !== num / i ? num / i : 0);
+    // Validate input
+    if (number === undefined || number.trim() === "") {
+        return res.status(400).json({ error: true, number: "" });
     }
-  }
+    if (isNaN(number)) {
+        return res.status(400).json({ error: true, number });
+    }
 
-  return {
-    is_prime,
-    is_perfect: sum === num && num !== 1,
-  };
-};
+    number = Number(number);
+    let properties = [];
 
-// Route to classify number
-app.get("/api/classify-number", async (req, res) => {
-  const { number } = req.query;
-  const num = parseInt(number, 10);
+    // Check if number is even or odd
+    if (number % 2 === 0) {
+        properties.push("even");
+    } else {
+        properties.push("odd");
+    }
 
-  if (isNaN(num)) return res.status(400).json({ number: "alphabet", error: true });
+    // Check if number is prime
+    const isPrime = checkPrime(number);
 
-  // Extract digits
-  const digits = num.toString().split("").map(Number);
-  const digit_sum = digits.reduce((acc, digit) => acc + digit, 0);
-  const power = digits.length;
-  const is_armstrong = digits.reduce((acc, digit) => acc + Math.pow(digit, power), 0) === num;
+    // Check if number is a perfect number
+    const isPerfect = checkPerfect(number);
 
-  // Process number properties
-  const { is_prime, is_perfect } = classifyNumber(num);
-  const properties = [num % 2 === 0 ? "even" : "odd"];
-  if (is_armstrong) properties.push("armstrong");
+    // Check if number is an Armstrong number
+    if (isArmstrong(number)) {
+        properties.push("armstrong");
+    }
 
-  // Fetch fun fact concurrently
-  const funFactPromise = axios
-    .get(`http://numbersapi.com/${num}/math?json`)
-    .then((response) => response.data.text || `No fun fact available for ${num}.`)
-    .catch(() => `Oops.. ${num} fun fact is unavailable.`);
+    // Calculate digit sum (absolute value for negatives)
+    const digitSum = getDigitSum(number);
 
-  const fun_fact = await funFactPromise;
+    // Fetch fun fact about the number
+    let fun_fact;
+    try {
+        const response = await axios.get(`http://numbersapi.com/${number}/math?json`);
+        fun_fact = response.data.text || `No fun fact available for ${number}.`;
+    } catch (error) {
+        fun_fact = `Oops.. ${number} fun fact is unavailable.`;
+    }
 
-  res.json({
-    number: num,
-    is_prime,
-    is_perfect,
-    properties,
-    digit_sum,
-    fun_fact,
-  });
+    // Sort properties to ensure consistent ordering
+    properties.sort();
+
+    res.status(200).json({
+        number,
+        is_prime: isPrime,
+        is_perfect: isPerfect,
+        properties,
+        digit_sum: digitSum,
+        fun_fact,
+    });
 });
 
+// Function to check if a number is prime
+function checkPrime(num) {
+    if (num <= 1) return false;
+    for (let i = 2; i <= Math.sqrt(num); i++) {
+        if (num % i === 0) return false;
+    }
+    return true;
+}
+
+// Function to check if a number is perfect
+function checkPerfect(num) {
+    if (num < 1) return false;
+    let sum = 0;
+    for (let i = 1; i <= num / 2; i++) {
+        if (num % i === 0) sum += i;
+    }
+    return sum === num;
+}
+
+// Function to check if a number is an Armstrong number
+function isArmstrong(num) {
+    let sum = 0;
+    let digits = Math.abs(num).toString().split("").map(Number);
+    let power = digits.length;
+
+    digits.forEach(digit => {
+        sum += Math.pow(digit, power);
+    });
+
+    return sum === Math.abs(num);
+}
+
+// Function to compute the sum of digits (absolute value for negatives)
+function getDigitSum(num) {
+    return Math.abs(num)
+        .toString()
+        .split("")
+        .reduce((sum, digit) => sum + parseInt(digit), 0);
+}
+
 // Start server
-app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
